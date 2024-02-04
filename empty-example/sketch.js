@@ -1,5 +1,9 @@
 // Elaborado con la biblioteca p5.js (Lenguaje capaz de ser ejecutado por navegadores web)
 
+// * Name: Abraham Jhared Flores Azcona
+// * Date: May 2022
+
+// * Constants
 const LORENZ_SIGMA = 10;
 const LORENZ_RHO = 28;
 const LORENZ_BETA = 8/3;
@@ -9,7 +13,7 @@ const LORENZ_Z_0 = 1;
 const LORENZ_TIME_DIFFERENTIAL = 1/60;
 const PATH_MAX_LEN = 60;
 const ROTATING_FACTOR = 0.005;
-const SCALE_FACTOR = 1/80;
+const SCALE_FACTOR = 0.008;
 const BACKGROUND_COLOR = 15;
 const LINE_WEIGHT = 0.6;
 const STROKE_COLOR = 255;
@@ -21,14 +25,15 @@ const ZERO = 0;
 const ONE = 1;
 const ONE_HUNDRED = 100;
 
+// * Global variables
 let path_offset = ZERO;
-let path_values = [];
-let lorenz_coordinates;
-let lorenz_new_coordinates;
-let previous_path_value;
-let next_path_value;
+let path_values = []; // * stores the entire history of the generated lorenz values
+let previous_path_value = null;
+let lorenz_coordinates = null;
+let lorenz_new_coordinates = null;
 
-function lorenzAttractorInitialValues() {
+// * Sets Initial coordinates of the system
+function setLorenzAttractorInitialValues() {
   lorenz_coordinates = createVector(
     LORENZ_X_0, 
     LORENZ_Y_0, 
@@ -36,7 +41,8 @@ function lorenzAttractorInitialValues() {
   );
 }
 
-function lorenzAttractorInit() { 
+// * Calculates the current coordinates of the system
+function getLorenzAttractorCurrentValues() { 
     lorenz_new_coordinates = createVector(
       LORENZ_SIGMA * (lorenz_coordinates.y - lorenz_coordinates.x),
       lorenz_coordinates.x * (LORENZ_RHO - lorenz_coordinates.z) - lorenz_coordinates.y, 
@@ -46,34 +52,45 @@ function lorenzAttractorInit() {
     lorenz_new_coordinates.mult(LORENZ_TIME_DIFFERENTIAL);
   }
 
-function lorenzAttractorUpdate() {
+// * Sums the previous lorenzs coordinates with the lorenz_new_coordinates
+function setLorenzAttractorCurrentValues() {
     lorenz_coordinates.add(lorenz_new_coordinates);
 }
 
-function pathValuesInit() {
+// * Updates the path_values array with a new lorenz coordinate
+function setPathValues() {
     path_values.push(lorenz_coordinates.copy());
     
+    /*
+      adds more related system noise; if length > 60, cuts the first value of the history
+      and adds 1 to path_offset which is used to affect rectangleGeneration() via rentangleStroke()
+    */
     if (path_values.length > PATH_MAX_LEN)
     {
-      path_values.splice(ZERO, ONE);
+      path_values.shift();
       ++path_offset;   
     }
   }
 
-function pathValueUpdate() {
+// * Sets previous_path_value to the first element of the path_values array
+function setPreviousPathValue() {
     previous_path_value = path_values[ZERO];
 }
 
-function rectangleDraw() {
-      rect(
+// * Draws the rectangles with the given lorenz coordinates and a 1D noise filter
+function getRectangleDrawing(i) {
+    fill(RECTANGLE_COLOR_FILL);    
+    rect(
         previous_path_value.x + noise(previous_path_value.x), 
         previous_path_value.x + noise(previous_path_value.x),
         previous_path_value.y + noise(previous_path_value.y), 
         previous_path_value.z * noise(previous_path_value.z)
       );
+    setRectangleStroke(i);
 }
 
-function rectangleStroke(i) {
+// * Sets the stroke of the given rectangles using the current index given by rentangleGeneration & path_offset
+function setRectangleStroke(i) {
     stroke(
         i + path_offset, 
         RECTANGLE_STROKE_PARAMETER, 
@@ -81,21 +98,17 @@ function rectangleStroke(i) {
     );
   }
 
+// * Generates the rentangles given the modifications of rectangleDraw
 function rectangleGeneration() {
     for (let i = ONE; i < path_values.length; ++i)
     {
-      fill(RECTANGLE_COLOR_FILL);
-      
-      rectangleDraw();
-
-      rectangleStroke(i);
-      
-      next_path_value = path_values[i];
-      previous_path_value = next_path_value;
+      getRectangleDrawing(i);
+      previous_path_value = path_values[i];
     }
-  }
+}
 
-function drawingPreparations() {
+// * Updates the rotation of the animation object
+function getDrawingPreparations() {
   rotateY(frameCount * ROTATING_FACTOR); 
   rotateZ(frameCount * ROTATING_FACTOR); 
   scale(width * SCALE_FACTOR); 
@@ -108,14 +121,14 @@ function drawingPreparations() {
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
   colorMode(HSB, ONE_HUNDRED);
-  lorenzAttractorInitialValues();
+  setLorenzAttractorInitialValues();
 }
 
 function draw() {
-  drawingPreparations();
-  lorenzAttractorInit();
-  lorenzAttractorUpdate();
-  pathValuesInit();
+  getDrawingPreparations();
+  getLorenzAttractorCurrentValues();
+  setLorenzAttractorCurrentValues();
+  setPathValues();
   rectangleGeneration();
-  pathValueUpdate();
+  setPreviousPathValue();
 }
